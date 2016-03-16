@@ -1,0 +1,208 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Invite and remove users</title>
+<script src="resources/jquery-2.1.4.min.js"></script>
+<link href="resources/jquery-ui-1.11.4.custom/jquery-ui.css" rel="stylesheet">
+<script src="resources/jquery-ui-1.11.4.custom/external/jquery/jquery.js"></script>
+<script src="resources/jquery-ui-1.11.4.custom/jquery-ui.js"></script>
+<script src="resources/common_js.js"></script>
+<!-- <link rel="stylesheet" href="resources/my_style.css"> -->
+
+<script type="text/javascript">
+	var sessionId = parseInt(getQueryStringByName("session_id"));
+	var userName =  getQueryStringByName("user_name");
+	var userId = parseInt(getQueryStringByName("user_id"));
+	
+	$(document).ready(function() {
+		$("#but_invite_users").click(function(event) {
+			inviteUsers ();
+		});
+		
+		$("#but_remove_users").click(function(event) {
+			removeUsers ();
+		});
+		
+		$("#but_refresh_invite_users").click(function(event) {
+			getAllUsers ();
+		});
+		
+		$("#but_refresh_remove_users").click(function(event) {
+			getSessionUsers ();
+		});
+		
+		//initialize page
+		getAllUsers ();
+		getSessionUsers ();
+	});
+
+	function inviteUsers () {
+		var inviteUsersJson = {"sessionUsers":[ ]};
+		
+		$("input[name='ck_all_user']:checked").each(function() {
+			var userJson = {"sessionId": sessionId,
+			         		"userId": parseInt(this.value),
+			         		"userName": $("#div_invite_users").data(this.value)};
+			
+			inviteUsersJson.sessionUsers.push(userJson);
+		});
+		
+		var urlStr = urlRestAPIFrontPart + "addUsers";
+		$.ajax({
+			type : "POST",
+			url : urlStr,
+			data : JSON.stringify(inviteUsersJson),
+			contentType : "application/json",
+			dataType : "json",
+			beforeSend : function() {},
+			success : function (data) {
+				alert("Invited users successfully.");
+				displaySessionUsersFun (data);
+				getAllUsers ();
+			},
+			failure : function(errMsg) {
+				alert(errMsg);
+			}
+		});
+	}
+	
+	function removeUsers () {
+		var removeUsersJson = {"sessionUsers":[ ]};
+		$("input[name='ck_session_user']:checked").each(function() {
+			var userJson = {"sessionId": sessionId,
+			         		"userId": parseInt(this.value),
+			         		"userName": $("#div_remove_users").data(this.value)};
+			
+			removeUsersJson.sessionUsers.push(userJson);
+		});
+		
+		var urlStr = urlRestAPIFrontPart + "removeUsers";
+		$.ajax({
+			type : "DELETE",
+			url : urlStr,
+			data : JSON.stringify(removeUsersJson),
+			contentType : "application/json",
+			dataType : "json",
+			beforeSend : function() {},
+			success : function (data) {
+				alert("Remove users successfully.");
+				displaySessionUsersFun (data);
+				getAllUsers ();
+			},
+			failure : function(errMsg) {
+				alert(errMsg);
+			}
+		});
+	}
+	
+	function getAllUsers () {
+		var urlStr = urlRestAPIFrontPart + "getAllUsersBySessionId/" + sessionId;
+		$.ajax({
+			type : "GET",
+			url : urlStr,
+			data : null,
+			contentType : "application/json",
+			dataType : "json",
+			beforeSend : function() {},
+			success : displayAllUsersFun,
+			failure : function(errMsg) {
+				alert(errMsg);
+			}
+		});
+	}
+	
+	var displayAllUsersFun = function displayAllUsers (data) {
+		var htmlStr = "<table style=\"width: 100%\">";
+		
+		var rowNumber = 1;
+		var maxRowNumber = 2;
+		htmlStr = htmlStr + "<tr>";
+		$.each(data.sessionUsers, function(i, user) {
+			
+			if (rowNumber % maxRowNumber != 0)
+				htmlStr = htmlStr + "<td>" + '<input type ="checkbox" name="ck_all_user" value="' + user.userId + '"/><label>' + user.userName + ' (' + user.status + ')' + '</label>' + "</td>";
+			else {
+				htmlStr = htmlStr + "<td>" + '<input type ="checkbox" name="ck_all_user" value="' + user.userId + '"/><label>' + user.userName + ' (' + user.status + ')' + '</label>' + "</td></tr><tr>";
+			}
+			
+			$("#div_invite_users").data((user.userId).toString(), user.userName);
+			rowNumber = rowNumber + 1;
+		});
+		
+		$("#div_invite_users").height(50 + Math.ceil(rowNumber / maxRowNumber) * 35);
+		htmlStr = htmlStr + "</tr></table>";
+		$("#p_all_users").html(htmlStr);
+	}
+	
+	function getSessionUsers () {
+		var urlStr = urlRestAPIFrontPart + "/getSessionUsers/" + sessionId;
+		$.ajax({
+			type : "GET",
+			url : urlStr,
+			data : null,
+			contentType : "application/json",
+			dataType : "json",
+			beforeSend : function() {},
+			success : displaySessionUsersFun,
+			failure : function(errMsg) {
+				alert(errMsg);
+			}
+		});
+	}
+	
+	var displaySessionUsersFun = function displaySessionUsers (data) {
+		var htmlStr = "<table style=\"width: 100%\">";
+		
+		var rowNumber = 1;
+		var maxRowNumber = 2;
+		htmlStr = htmlStr + "<tr>";
+		$.each(data.sessionUsers, function(i, user) {
+			
+			if (rowNumber % maxRowNumber != 0)
+				htmlStr = htmlStr + "<td>" + '<input type ="checkbox" name="ck_session_user" value="' + user.userId + '"/><label>' + user.userName + ' (' + user.status + ')' + '</label>' + "</td>";
+			else {
+				htmlStr = htmlStr + "<td>" + '<input type ="checkbox" name="ck_session_user" value="' + user.userId + '"/><label>' + user.userName + ' (' + user.status + ')' + '</label>' + "</td></tr><tr>";
+			}
+			rowNumber = rowNumber + 1;
+			
+			$("#div_remove_users").data((user.userId).toString(), user.userName);
+		});
+		
+		$("#div_remove_users").height(50 + Math.ceil(rowNumber / maxRowNumber) * 35);
+		htmlStr = htmlStr + "</tr></table>";
+		$("#p_session_users").html(htmlStr);
+	}
+	
+</script>
+</head>
+<body>
+	<div id="accordion">
+		<h3>Invite Users</h3>
+		<div id="div_invite_users">
+			<p id="p_all_users"></p>
+			<table style="width: 100%">
+				<tr>
+					<td><button id="but_refresh_invite_users" style="width: 100%;"><font size="4">Refresh</font></button></td>
+					<td><button id="but_invite_users" style="width: 100%;"><font size="4">&nbsp;&nbsp;Invite&nbsp;&nbsp;</font></button></td>
+				</tr>
+			</table>
+		</div>
+		<h3>Remove Users</h3>
+		<div id="div_remove_users">
+			<p id="p_session_users"></p>
+			<table style="width: 100%">
+				<tr>
+					<td><button id="but_refresh_remove_users" style="width: 100%;"><font size="4">Refresh</font><br></td>
+					<td><button id="but_remove_users" style="width: 100%;"><font size="4">Remove</font><br></td>
+			</tr>
+			</table>
+		</div>
+	</div>
+
+	<script>
+		$("#accordion").accordion();
+		$("button").button();
+	</script>
+</body>
+</html>

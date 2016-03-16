@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+<script src="resources/jquery-2.1.4.min.js"></script>
+<script type="text/javascript">
+	$(document).ready(function() {
+		$("#but_open_ss").click(function(event) {
+			popupChatDialog (292, "Steve Jobs");
+		});
+	});
+	
+	$(document).ready(function() {
+		$("#but_open_ss_2").click(function(event) {
+			popupChatDialog (291, "Bill Gates");
+		});
+	});
+	
+	function popupChatDialog (userId, userName) {
+		window.open ('session_selection.html?user_id=' + userId + '&user_name=' + userName, 
+				'Session Selection (' + userName + ')', 
+				'height=290, width=350, top=100,left=400, toolbar=no, menubar=no, scrollbars=no, resizable=no,location=no, status=no');
+	}
+	
+</script>
+</head>
+<body>
+	<button id="but_open_ss">login as Steve Jobs</button>
+	
+	<button id="but_open_ss_2">login as Bill Gates</button>
+</body>
+</html>

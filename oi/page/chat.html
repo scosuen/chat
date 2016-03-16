@@ -1,0 +1,147 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Chat</title>
+<script src="resources/jquery-2.1.4.min.js"></script>
+<link href="resources/jquery-ui-1.11.4.custom/jquery-ui.css" rel="stylesheet">
+<script src="resources/jquery-ui-1.11.4.custom/external/jquery/jquery.js"></script>
+<script src="resources/jquery-ui-1.11.4.custom/jquery-ui.js"></script>
+<script src="resources/common_js.js"></script>
+
+<style type="text/css">
+TEXTAREA {
+    FONT-SIZE: 13pt;
+    font-family: Helvetica, sans-serif;
+    TEXT-DECORATION: none,line-height:10;
+    BACKGROUND-IMAGE: url(resources/jquery-ui-1.11.4.custom/images/ui-bg_fine-grain_15_ffffff_60x60.png);
+    
+}
+</style>
+
+<script type="text/javascript">
+
+	var sessionId = parseInt(getQueryStringByName("session_id"));
+	var userName =  getQueryStringByName("user_name");
+	var userId = parseInt(getQueryStringByName("user_id"));
+	
+	var sessionAvailableFlag = true;
+	
+	$( document ).ready(function() {
+		$("#but_send_message").click(function( event ){
+			if (sessionAvailableFlag == false) {
+				alert("Chat " + sessionId + " has expired.");
+				return;
+			}
+	        sendMessage();
+	    });
+		
+		$("#but_send_to").click(function( event ){
+			if (sessionAvailableFlag == false) {
+				alert("Chat " + sessionId + " has expired.");
+				return;
+			}
+			window.open (getChatUrl (), 'Invite and remove users (' + sessionId  + ', ' + userName + ')', 'height=400, width=700, top=100,left=400, toolbar=no, menubar=no, scrollbars=no, resizable=no,location=no, status=no')
+	    });
+		
+		$("#td_chat_title").html("Chat " + sessionId + "　");
+	 });
+
+	setInterval(function() {
+		if (sessionAvailableFlag == false)
+			return;
+		getMessage ();
+	}, 3000);
+
+	function getMessage () {
+		var urlStr = urlRestAPIFrontPart + "getSessionMessages/" + sessionId;
+		urlStr = urlStr + "/"+ userId + "/" + userName +"/" + $("#hid_request_time").val();
+		$.ajax({
+			type: "GET",
+			url: urlStr,
+			data: null,
+			contentType: "application/json",
+			dataType: "json",
+			async: false ,
+			beforeSend: function() {},
+			success: function(data) {
+				if (data.hasOwnProperty("success") && data.success == false) {
+					$("#td_chat_title").html("Chat " + sessionId + " has expired　");
+					sessionAvailableFlag = false;
+					return;
+				}
+				
+				$("#hid_request_time").val(JSON.stringify(data.requestTime));
+				$.each(data.sessionMessages, function(i, msg) {
+					$("#tt_messages_show").append(msg.sendUserName + " : " + msg.message + "\r\n");
+				});
+				textAreaScroll ();
+			},
+			failure: function(errMsg) {
+				alert(errMsg);
+			}
+		});
+	}
+
+	function sendMessage() {
+		var msgTxt = $.trim($("#tt_messages_send").val());
+		if (msgTxt.length < 1)
+			return;
+		
+		var requestJson = JSON.stringify({
+						"sessionId": sessionId,
+						"sendUserId": parseInt(userId),
+						"sendUserName": userName,
+						"message": msgTxt
+					});
+					
+		$.ajax({
+			type: "POST",
+			url: urlRestAPIFrontPart + "sendMessage",
+			data: requestJson,
+			contentType: "application/json",
+			dataType: "json",
+				
+			beforeSend: function() {},
+			
+			success: function(data) {
+				$("#tt_messages_show").append(userName + " : " + msgTxt + "\r\n");
+				$("#tt_messages_send").val("");
+			},
+			failure: function(errMsg) {
+				alert(errMsg);
+			}
+		});
+	}
+	
+	function textAreaScroll () {
+		var psconsole = $('#tt_messages_show');
+		if(psconsole.length)
+			psconsole.scrollTop(psconsole[0].scrollHeight - psconsole.height());
+	}
+	
+	function getChatUrl () {
+		var url = "invite_remove_users.html?user_id=";
+		url = url + userId;
+		url = url + "&user_name=" + userName;
+		url = url + "&&session_id=" + sessionId;
+		return url;
+	}
+
+</script>
+</head>
+<body>
+	<input type="hidden" id="hid_request_time" value="0">
+<!-- 	<p id="p_chat_title" style="width: 98.3%;height:50%" class="newClass ui-corner-all"></p> -->
+	<table style="width: 100%">
+		<tr><td id="td_chat_title" style="text-align:right; font-size:17px; font-family: Helvetica, sans-serif; font-weight: bold; color:#654b24"></td></tr>
+		<tr><td><textarea rows="10" id="tt_messages_show" readonly style="width: 98.3%;" class="newClass ui-corner-all"></textarea></td></tr>
+		<tr><td><button type="button" id="but_send_to" style="width: 100%;"><font size="4">Send to ...</font></button></td></tr>
+		<tr><td><textarea rows="4" id="tt_messages_send" style="width: 98.3%;"></textarea></td></tr>
+		<tr><td><button type="button" id="but_send_message" style="width: 100%;"><font size="4">Send</font></button></td></tr>
+	</table>
+	<script>
+		$("button").button();
+	</script>
+</body>
+</html>

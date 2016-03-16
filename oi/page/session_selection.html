@@ -1,0 +1,133 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Session Selection</title>
+<script src="resources/jquery-2.1.4.min.js"></script>
+<link href="resources/jquery-ui-1.11.4.custom/jquery-ui.css" rel="stylesheet">
+<script src="resources/jquery-ui-1.11.4.custom/external/jquery/jquery.js"></script>
+<script src="resources/jquery-ui-1.11.4.custom/jquery-ui.js"></script>
+<script src="resources/common_js.js"></script>
+
+<!-- <link rel="stylesheet" href="resources/my_style.css"> -->
+
+<script type="text/javascript">
+	var userOnlineFlag = false;
+
+	$(document).ready(function() {
+		$("#but_refresh").click(function(event) {
+			getSessionsNUsers ();
+		});
+		
+		$("#but_new_session").click(function(event) {
+			//create new session, get session_id and send it to the chat page.
+			openChatWindow ( createNewSession ());
+		});
+		
+		//login
+		
+		//
+		userOnlineFlag = true;
+		
+		//initialize page
+		getSessionsNUsers ();
+	});
+	
+	setInterval(function() {
+		getSessionsNUsers ();
+	}, 300 * 1000);
+	
+	function getSessionsNUsers () {
+		var urlStr = urlRestAPIFrontPart + "getSessionsNUsers/" + getQueryStringByName("user_id");
+		$.ajax({
+			type : "GET",
+			url : urlStr,
+			data : null,
+			contentType : "application/json",
+			dataType : "json",
+			beforeSend : function() {},
+			success : builderSessionListFun,
+			failure : function(errMsg) {
+				alert(errMsg);
+			}
+		});
+	}
+	
+	var builderSessionListFun = function builderSessionList (data) {
+		$("#p_session_list").html("");
+		$.each(data.sessions, function(i, session) {
+			if (data.hasOwnProperty("success") && data.success == false) {
+				userOnlineFlag = false;
+				return;
+			}
+			
+			var htmlStr = "<table style=\"width: 100%\">";
+			$.each(data.sessions, function(i, session) {
+				htmlStr = htmlStr + "<tr><td><button style=\"width: 100%;\" onclick= \"openChatWindow('";
+				htmlStr = htmlStr + session.sessionId;
+				htmlStr = htmlStr + "')\" >";
+				htmlStr = htmlStr + "<font size='4'>Join the chat (" + session.sessionId + ")</font><br><font size='2'>";
+				$.each(session.sessionUsers, function(i, user) {
+					htmlStr = htmlStr + "  " + user.userName;
+				});
+				
+				htmlStr = htmlStr + "</font></button></td></tr>";
+			});
+			
+			htmlStr = htmlStr + "</table>";
+			$("#p_session_list").html(htmlStr);
+			$("button").button();
+		});
+	}
+	
+	function createNewSession () {
+		var session_id = 0;
+		var urlStr = urlRestAPIFrontPart + "/createSession";
+		
+		var requestJson = JSON.stringify({
+			 "createUserserId": parseInt(getQueryStringByName("user_id")),
+			 "createUserName": getQueryStringByName("user_name")
+		});
+		
+		$.ajax({
+			type : "POST",
+			url : urlStr,
+			data : requestJson,
+			contentType : "application/json",
+			dataType : "json",
+			async: false,
+			beforeSend : function() {},
+			success : function(data) {
+				session_id = data.sessionId;
+			},
+			failure : function(errMsg) {
+				alert(errMsg);
+			}
+		});
+		return session_id;
+	}
+	
+	function openChatWindow (sessionId) {
+		var url = "chat.html?user_id=";
+		url = url + getQueryStringByName("user_id");
+		url = url + "&user_name=" + getQueryStringByName("user_name");
+		url = url + "&&session_id=" + sessionId;
+		
+		window.open (url, 'Chat(' + sessionId + ', ' + getQueryStringByName("user_name") + ')', 'height=450, width=450, top=100,left=400, toolbar=no, menubar=no, scrollbars=no, resizable=no,location=no, status=no');
+	}
+</script>
+</head>
+<body>
+	<p id="p_session_list"></p>
+	
+	<table style="width: 100%">
+		<tr><td><button id="but_refresh" style="width: 100%;"><font size="4">&nbsp;&nbsp;Refresh&nbsp;&nbsp;</font><br></button></td>
+			<td><button id="but_new_session" style="width: 100%;"><font size="4">New Chat</font></button></td>
+		</tr>
+	</table>
+	
+	<script>
+		$("button").button();
+	</script>
+</body>
+</html>
